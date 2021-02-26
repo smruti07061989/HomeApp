@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.List;
 
 
-
 public class ApkInfoExtractor {
 
     Context context1;
@@ -50,6 +49,45 @@ public class ApkInfoExtractor {
         }
         return ApkPackageName;
 
+    }
+
+    public List<String> GetAllInstalledApkName() {
+
+        List<String> ApkName = new ArrayList<>();
+
+        Intent intent = new Intent(Intent.ACTION_MAIN, null);
+
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+
+        List<ResolveInfo> resolveInfoList = context1.getPackageManager().queryIntentActivities(intent, 0);
+
+        for (ResolveInfo resolveInfo : resolveInfoList) {
+
+            ActivityInfo activityInfo = resolveInfo.activityInfo;
+
+            if (!isSystemPackage(resolveInfo)) {
+                ApplicationInfo applicationInfo;
+                PackageManager packageManager = context1.getPackageManager();
+
+                try {
+
+                    applicationInfo = packageManager.getApplicationInfo(activityInfo.applicationInfo.packageName, 0);
+
+                    if (applicationInfo != null) {
+
+                        String Name = (String) packageManager.getApplicationLabel(applicationInfo);
+                        ApkName.add(Name);
+                    }
+
+                } catch (PackageManager.NameNotFoundException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
+        return ApkName;
     }
 
     public boolean isSystemPackage(ResolveInfo resolveInfo) {
@@ -108,8 +146,9 @@ public class ApkInfoExtractor {
         }
         return packageInfo;
     }
+
     public String GetMainActivity(String ApkPackageName) {
-        String className=null;
+        String className = null;
         try {
             Intent launchIntent = context1.getPackageManager().getLaunchIntentForPackage(ApkPackageName);
             className = launchIntent.getComponent().getClassName();

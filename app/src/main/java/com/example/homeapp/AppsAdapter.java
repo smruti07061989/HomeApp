@@ -7,6 +7,8 @@ import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,21 +16,75 @@ import android.widget.Toast;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
-public class AppsAdapter extends RecyclerView.Adapter<AppsAdapter.ViewHolder> {
+public class AppsAdapter extends RecyclerView.Adapter<AppsAdapter.ViewHolder> implements Filterable {
 
     Context myContext;
     List<String> stringList;
+//    private List<String> orig;
+    private ArrayList<String> items;
+    private final List<String> userList;
+
+    private final List<String> filteredUserList;
+    ApkInfoExtractor apkInfoExtractor;
+    private UserFilter userFilter;
 
     public AppsAdapter(Context context, List<String> list) {
 
         myContext = context;
         this.stringList = list;
-        Collections.sort(stringList,String::compareToIgnoreCase);
+        this.filteredUserList = new ArrayList<>();
+         apkInfoExtractor = new ApkInfoExtractor(myContext);
+        items = new ArrayList<>();
+       this.userList=apkInfoExtractor.GetAllInstalledApkName();
+        Collections.sort(stringList, String::compareToIgnoreCase);
     }
+
+    public void setFilter(List<String> filteredDataList) {
+        stringList = filteredDataList;
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public Filter getFilter() {
+        if(userFilter == null)
+            userFilter = new UserFilter(this, stringList);
+        return userFilter;
+//        return new Filter() {
+//            @Override
+//            protected FilterResults performFiltering(CharSequence constraint) {
+//                final FilterResults oReturn = new FilterResults();
+//                final List<String> results = new ArrayList<String>();
+//                if (orig == null)
+//                    orig  = items;
+//                if (constraint != null){
+//                    if(orig !=null & orig.size()>0 ){
+//                        for ( final String g :orig) {
+//                            if (g.contains(constraint.toString()))
+//                                results.add(g);
+//                        }
+//                    }
+//                    oReturn.values = results;
+//                }
+//                return oReturn;
+            }
+
+//            @Override
+//            protected void publishResults(CharSequence constraint, FilterResults results) {
+//                items = (ArrayList<String>)results.values;
+//                notifyDataSetChanged();
+//
+//            }
+
+
+
+
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
 
@@ -68,7 +124,7 @@ public class AppsAdapter extends RecyclerView.Adapter<AppsAdapter.ViewHolder> {
     @Override
     public void onBindViewHolder(ViewHolder viewHolder, int position) {
 
-        ApkInfoExtractor apkInfoExtractor = new ApkInfoExtractor(myContext);
+
 
         final String ApplicationPackageName = (String) stringList.get(position);
         String ApplicationLabelName = apkInfoExtractor.GetAppName(ApplicationPackageName);
@@ -110,4 +166,50 @@ public class AppsAdapter extends RecyclerView.Adapter<AppsAdapter.ViewHolder> {
 
         return stringList.size();
     }
+    private static class UserFilter extends Filter {
+
+        private final AppsAdapter adapter;
+
+        private final List<String> originalList;
+
+        private final List<String> filteredList;
+
+        private UserFilter(AppsAdapter adapter, List<String> originalList) {
+            super();
+            this.adapter = adapter;
+            this.originalList = new LinkedList<>(originalList);
+            this.filteredList = new ArrayList<>();
+        }
+
+        @Override
+        protected FilterResults performFiltering(CharSequence constraint) {
+            filteredList.clear();
+            final FilterResults results = new FilterResults();
+
+            if (constraint.length() == 0) {
+                filteredList.addAll(originalList);
+            } else {
+                final String filterPattern = constraint.toString().toLowerCase().trim();
+
+                for (final String s : originalList) {
+                    if (s.endsWith(filterPattern)) {
+                        filteredList.add(s);
+                    }
+                }
+            }
+            results.values = filteredList;
+            results.count = filteredList.size();
+            return results;
+        }
+
+        @Override
+        protected void publishResults(CharSequence constraint, FilterResults results) {
+            adapter.stringList.clear();
+            adapter.stringList.addAll((ArrayList<String>) results.values);
+            adapter.notifyDataSetChanged();
+        }
+    }
 }
+
+
+
